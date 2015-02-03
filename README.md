@@ -9,7 +9,7 @@ records.
 
 ## Usage
 
-```
+```go
 import (
     dmidecode "github.com/dselans/dmidecode"
 )
