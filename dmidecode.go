@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -150,4 +151,29 @@ func (d *DMI) ParseDmidecode(output string) error {
 	}
 
 	return nil
+}
+
+// Generic map lookup method
+func (d *DMI) GenericSearchBy(param, value string) (map[string]string, error) {
+	if len(d.Data) == 0 {
+		return nil, errors.New("DMI data is empty; make sure to .Run() first")
+	}
+
+	for _, v := range d.Data {
+		if v[param] == value {
+			return v, nil
+		}
+	}
+
+	return make(map[string]string), nil
+}
+
+// Search for a specific DMI record by name
+func (d *DMI) SearchByName(name string) (map[string]string, error) {
+	return d.GenericSearchBy("DMIName", name)
+}
+
+// Search for a specific DMI record by its type
+func (d *DMI) SearchByType(id int) (map[string]string, error) {
+	return d.GenericSearchBy("DMIType", strconv.Itoa(id))
 }
