@@ -20,12 +20,20 @@ if err := dmi.Run(); err != nil {
     fmt.Printf("Unable to get dmidecode information. Error: %v\n", err)
 }
 
-sysInfo, err := dmi.Search("System Information")
-if err != nil {
-    fmt.Println("Unable to find System Information")
-}
+// You can search by record name
+byNameData, byNameErr := dmi.SearchByName("System Information")
 
-for k, v := range sysInfo {
-    fmt.Printf("Key: %v Value: %v\n", key, value)
+// or you can also search by record type
+byTypeData, byTypeErr := dmi.SearchByType(1)
+
+// or you can just access the data directly
+for handle, record := range dmi.Data {
+    fmt.Println("Checking record:", handle)
+    for k, v := range record {
+        fmt.Printf("Key: %v Val: %v\n", k, v)
+    }
 }
 ```
+
+## Note
+Record elements which contain an array/list, are stored as strings separated by 2 tabs (same as in `dmidecode` output). This may change in the future, but for the time being it's simple and quick.
