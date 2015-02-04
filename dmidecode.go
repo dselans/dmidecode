@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	//"regexp"
-	//"strings"
+	"regexp"
+	"strings"
 )
 
 type DMI struct {
@@ -15,6 +15,7 @@ type DMI struct {
 
 func New() *DMI {
 	dmi := &DMI{}
+	dmi.Data = make(map[string]map[string]string)
 	return dmi
 }
 
@@ -68,8 +69,85 @@ func (d *DMI) ExecDmidecode(binary string) (string, error) {
 	return string(output), nil
 }
 
+// Gross; maybe there is a cleaner way to get this done via multiline regex
 func (d *DMI) ParseDmidecode(output string) error {
 	// Each record is separated by double newlines
+	splitOutput := strings.Split(output, "\n\n")
+
+	for _, record := range splitOutput {
+		recordElements := strings.Split(record, "\n")
+
+		// Entries with less than 3 lines are incomplete/inactive; skip them
+		if len(recordElements) < 3 {
+			continue
+		}
+
+		handleRegex, _ := regexp.Compile("^Handle\\s+(.+),\\s+DMI\\s+type\\s+(\\d+),\\s+(\\d+)\\s+bytes$")
+		handleData := handleRegex.FindStringSubmatch(recordElements[0])
+
+		if len(handleData) == 0 {
+			continue
+		}
+
+		dmiHandle := handleData[1]
+
+		d.Data[dmiHandle] = make(map[string]string)
+		d.Data[dmiHandle]["DMIType"] = handleData[2]
+		d.Data[dmiHandle]["DMISize"] = handleData[3]
+
+		// Okay, we know 2nd line == name
+		d.Data[dmiHandle]["DMIName"] = recordElements[1]
+
+		inBlockElement := ""
+		inBlockList := ""
+
+		// Loop over the rest of the record, gathering values
+		for i := 2; i < len(recordElements); i++ {
+			// Check whether we are inside a \t\t block
+			if inBlockElement != "" {
+				inBlockRegex, _ := regexp.Compile("^\\t\\t(.+)$")
+				inBlockData := inBlockRegex.FindStringSubmatch(recordElements[i])
+
+				if len(inBlockData) > 0 {
+					if len(inBlockList) == 0 {
+						inBlockList = inBlockData[1]
+					} else {
+						inBlockList = inBlockList + "\t\t" + inBlockData[1]
+					}
+					d.Data[dmiHandle][inBlockElement] = inBlockList
+					continue
+				} else {
+					// We are out of the \t\t block; reset it again, and let
+					// the parsing continue
+					inBlockElement = ""
+				}
+			}
+
+			recordRegex, _ := regexp.Compile("\\t(.+):\\s+(.+)$")
+			recordData := recordRegex.FindStringSubmatch(recordElements[i])
+
+			// Is this the line containing handle identifier, type, size?
+			if len(recordData) > 0 {
+				d.Data[dmiHandle][recordData[1]] = recordData[2]
+				continue
+			}
+
+			// Didn't match regular entry, maybe an array of data?
+			recordRegex2, _ := regexp.Compile("\\t(.+):$")
+			recordData2 := recordRegex2.FindStringSubmatch(recordElements[i])
+
+			if len(recordData2) > 0 {
+				// This is an array of data - let the loop know we are inside
+				// an array block
+				inBlockElement = recordData2[1]
+				continue
+			}
+		}
+	}
+
+	if len(d.Data) == 0 {
+		return errors.New("Unable to parse 'dmidecode' output")
+	}
 
 	return nil
 }

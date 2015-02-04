@@ -2,8 +2,6 @@ package dmidecode
 
 import (
 	"os"
-	"regexp"
-	"strings"
 	"testing"
 )
 
@@ -67,39 +65,11 @@ func TestParseDmidecode(t *testing.T) {
 		t.Errorf("Should not get errors executing '%v'. Error: %v", bin, execErr)
 	}
 
-	splitOutput := strings.Split(output, "\n\n")
+	if err := dmi.ParseDmidecode(output); err != nil {
+		t.Error("Should not receive an error after parsing dmidecode output")
+	}
 
-	for _, record := range splitOutput {
-		recordElements := strings.Split(record, "\n")
-
-		// Only care about entries which have 3+ lines
-		if len(recordElements) < 3 {
-			continue
-		}
-
-		handleRegex, _ := regexp.Compile("^Handle\\s+(.+),\\s+DMI\\s+type\\s+(\\d+),\\s+(\\d+)\\s+bytes$")
-		handleData := handleRegex.FindStringSubmatch(recordElements[0])
-
-		if len(handleData) == 0 {
-			continue
-		}
-
-		// dmiHandle := handleData[1]
-		// dmiType := handleData[2]
-		// dmiSize := handleData[3]
-
-		// okay, we know 2nd line == name
-		dmiName := recordElements[1]
-
-		// Loop over the rest of the record, gathering values
-		for i := 2; i < len(recordElements); i++ {
-			t.Errorf("We have %v elements", len(recordElements))
-			recordRegex, _ := regexp.Compile("\\t(.+):\\s+(.+)$")
-			recordData := recordRegex.FindStringSubmatch(recordElements[i])
-
-			if len(recordData) > 0 {
-				t.Errorf("Found data for dmiName %v: %v => %v", dmiName, recordData[1], recordData[2])
-			}
-		}
+	if len(dmi.Data) == 0 {
+		t.Error("Parsed data structure should have more than 0 entries")
 	}
 }
