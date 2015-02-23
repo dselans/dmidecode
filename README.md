@@ -13,7 +13,7 @@ import (
     dmidecode "github.com/dselans/dmidecode"
 )
 
-dmi := dmidecode.NewDMI()
+dmi := dmidecode.New()
 
 if err := dmi.Run(); err != nil {
     fmt.Printf("Unable to get dmidecode information. Error: %v\n", err)
