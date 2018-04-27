@@ -1,7 +1,6 @@
 package dmidecode
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,42 +9,50 @@ import (
 	"strings"
 )
 
+const (
+	DMIDecodeBinary = "dmidecode"
+)
+
 type DMI struct {
 	Data map[string]map[string]string
+	Binary string
 }
 
 func New() *DMI {
-	dmi := &DMI{}
-	dmi.Data = make(map[string]map[string]string)
-	return dmi
+	return &DMI{
+		Data: make(map[string]map[string]string),
+		Binary: DMIDecodeBinary,
+	}
 }
 
-// Wrapper for FindBin, ExecCmd, ParseDmidecode
+// Run will attempt to find a a valid `dmidecode` bin, attempt to execute it and
+// parse whatever data it gets.
 func (d *DMI) Run() error {
-	bin, findErr := d.FindBin("dmidecode")
-	if findErr != nil {
-		return findErr
+	bin, err := d.FindBin(d.Binary)
+	if err != nil {
+		return err
 	}
 
-	cmdOutput, cmdErr := d.ExecDmidecode(bin)
-	if cmdErr != nil {
-		return cmdErr
+	output, err := d.ExecDmidecode(bin)
+	if err != nil {
+		return err
 	}
 
-	if err := d.ParseDmidecode(cmdOutput); err != nil {
+	if err := d.ParseDmidecode(output); err != nil {
 		return err
 	}
 
 	return nil
 }
 
+// FindBin will attempt to find a given binary in common bin paths.
 func (d *DMI) FindBin(binary string) (string, error) {
 	locations := []string{"/sbin", "/usr/sbin", "/usr/local/sbin"}
 
 	for _, path := range locations {
 		lookup := path + "/" + binary
-		fileInfo, err := os.Stat(path + "/" + binary)
 
+		fileInfo, err := os.Stat(path + "/" + binary)
 		if err != nil {
 			continue
 		}
@@ -55,14 +62,15 @@ func (d *DMI) FindBin(binary string) (string, error) {
 		}
 	}
 
-	return "", errors.New(fmt.Sprintf("Unable to find the '%v' binary", binary))
+	return "", fmt.Errorf("Unable to find the '%v' binary", binary)
 }
 
+// ExecDmiDecode will attempt to execute a given binary, capture its output and
+// return it (or an any errors it encounters)
 func (d *DMI) ExecDmidecode(binary string) (string, error) {
 	cmd := exec.Command(binary)
 
 	output, err := cmd.Output()
-
 	if err != nil {
 		return "", err
 	}
@@ -70,7 +78,8 @@ func (d *DMI) ExecDmidecode(binary string) (string, error) {
 	return string(output), nil
 }
 
-// Gross; maybe there is a cleaner way to get this done via multiline regex
+// ParseDmiDecode will attempt to parse dmidecode output and place all matching
+// content in d.Data.
 func (d *DMI) ParseDmidecode(output string) error {
 	// Each record is separated by double newlines
 	splitOutput := strings.Split(output, "\n\n")
@@ -147,16 +156,16 @@ func (d *DMI) ParseDmidecode(output string) error {
 	}
 
 	if len(d.Data) == 0 {
-		return errors.New("Unable to parse 'dmidecode' output")
+		return fmt.Errorf("unable to parse 'dmidecode' output")
 	}
 
 	return nil
 }
 
-// Generic map lookup method
+// GenericSearchBy will search for any param w/ value in the d.Data map.
 func (d *DMI) GenericSearchBy(param, value string) (map[string]string, error) {
 	if len(d.Data) == 0 {
-		return nil, errors.New("DMI data is empty; make sure to .Run() first")
+		return nil, fmt.Errorf("DMI data is empty; make sure to .Run() first")
 	}
 
 	for _, v := range d.Data {
@@ -168,12 +177,12 @@ func (d *DMI) GenericSearchBy(param, value string) (map[string]string, error) {
 	return make(map[string]string), nil
 }
 
-// Search for a specific DMI record by name
+// SearchByName will search for a specific DMI record by name in d.Data
 func (d *DMI) SearchByName(name string) (map[string]string, error) {
 	return d.GenericSearchBy("DMIName", name)
 }
 
-// Search for a specific DMI record by its type
+// SearchByType will search for a specific DMI record by its type in d.Data
 func (d *DMI) SearchByType(id int) (map[string]string, error) {
 	return d.GenericSearchBy("DMIType", strconv.Itoa(id))
 }

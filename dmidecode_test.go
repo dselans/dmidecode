@@ -1,3 +1,4 @@
+// These tests will only run where a `dmidecode` binary is available - sorry!
 package dmidecode
 
 import (
@@ -16,12 +17,12 @@ func TestFindBin(t *testing.T) {
 	dmi := New()
 
 	if _, err := dmi.FindBin("time4soup"); err == nil {
-		t.Error("Should not be able to find obscure binary")
+		t.Error("Should not be able to find a missing binary")
 	}
 
-	bin, findErr := dmi.FindBin("dmidecode")
+	bin, findErr := dmi.FindBin("ls")
 	if findErr != nil {
-		t.Errorf("Should be able to find dmidecode. Error: %v", findErr)
+		t.Errorf("Should be able to find a binary. Error: %v", findErr)
 	}
 
 	_, statErr := os.Stat(bin)
@@ -91,7 +92,7 @@ func TestParseDmidecode(t *testing.T) {
 		}
 
 		if err := dmi.ParseDmidecode(string(data)); err != nil {
-			t.Errorf("Should not get errors while parsing '%v'. Error:", file, err)
+			t.Errorf("Should not get errors while parsing '%v'. Error: %v", file, err)
 		}
 
 		if len(dmi.Data) == 0 {
