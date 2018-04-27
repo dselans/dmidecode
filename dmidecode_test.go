@@ -20,7 +20,7 @@ func TestFindBin(t *testing.T) {
 		t.Error("Should not be able to find a missing binary")
 	}
 
-	bin, findErr := dmi.FindBin("ls")
+	bin, findErr := dmi.FindBin("dmidecode")
 	if findErr != nil {
 		t.Errorf("Should be able to find a binary. Error: %v", findErr)
 	}
