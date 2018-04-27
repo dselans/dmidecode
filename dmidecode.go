@@ -38,11 +38,7 @@ func (d *DMI) Run() error {
 		return err
 	}
 
-	if err := d.ParseDmidecode(output); err != nil {
-		return err
-	}
-
-	return nil
+	return d.ParseDmidecode(output)
 }
 
 // FindBin will attempt to find a given binary in common bin paths.
