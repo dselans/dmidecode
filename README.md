@@ -1,6 +1,7 @@
+[![Build Status](https://travis-ci.org/dselans/dmidecode.svg?branch=master)](https://travis-ci.org/dselans/dmidecode)
+
 dmidecode
 =========
-
 `dmidecode` is a Go library that parses the output of the `dmidecode` command
 and makes it accessible via a simple map data structure.
 
@@ -34,7 +35,8 @@ for handle, record := range dmi.Data {
 }
 ```
 
-## Note
-Record elements which contain an array/list, are stored as strings separated by 2 tabs (same as in `dmidecode` output). This may change in the future, but for the time being it's simple and quick.
+## Note(s)
+* Record elements which contain an array/list, are stored as strings separated by 2 tabs (same as in `dmidecode` output). This may change in the future, but for the time being it's simple and quick.
+* `dmidecode` requires root privs to run as the binary reads `/dev/mem`.
+* _I wrote this lib as I was learning Go_ - meaning, it is probably not idiomatic Go code and "things" could be (a lot) better :-)
 
-Note that `dmidecode` requires root privs to run as the binary reads `/dev/mem`.
