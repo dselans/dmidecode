@@ -84,7 +84,7 @@ func TestParseDmidecode(t *testing.T) {
 
 	for _, file := range files {
 		// Let's clear it out, each iteration (just in case)
-		dmi.Data = make(map[string]map[string]string)
+		dmi.Data = make(map[string][]Record)
 
 		data, readErr := ioutil.ReadFile(file)
 		if readErr != nil {

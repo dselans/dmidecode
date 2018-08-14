@@ -13,14 +13,16 @@ const (
 	DMIDecodeBinary = "dmidecode"
 )
 
+type Record map[string]string
+
 type DMI struct {
-	Data map[string]map[string]string
+	Data   map[string][]Record
 	Binary string
 }
 
 func New() *DMI {
 	return &DMI{
-		Data: make(map[string]map[string]string),
+		Data:   make(map[string][]Record, 0),
 		Binary: DMIDecodeBinary,
 	}
 }
@@ -97,12 +99,12 @@ func (d *DMI) ParseDmidecode(output string) error {
 
 		dmiHandle := handleData[1]
 
-		d.Data[dmiHandle] = make(map[string]string)
-		d.Data[dmiHandle]["DMIType"] = handleData[2]
-		d.Data[dmiHandle]["DMISize"] = handleData[3]
+		r := Record{}
+		r["DMIType"] = handleData[2]
+		r["DMISize"] = handleData[3]
 
 		// Okay, we know 2nd line == name
-		d.Data[dmiHandle]["DMIName"] = recordElements[1]
+		r["DMIName"] = recordElements[1]
 
 		inBlockElement := ""
 		inBlockList := ""
@@ -120,7 +122,7 @@ func (d *DMI) ParseDmidecode(output string) error {
 					} else {
 						inBlockList = inBlockList + "\t\t" + inBlockData[1]
 					}
-					d.Data[dmiHandle][inBlockElement] = inBlockList
+					r[inBlockElement] = inBlockList
 					continue
 				} else {
 					// We are out of the \t\t block; reset it again, and let
@@ -134,7 +136,7 @@ func (d *DMI) ParseDmidecode(output string) error {
 
 			// Is this the line containing handle identifier, type, size?
 			if len(recordData) > 0 {
-				d.Data[dmiHandle][recordData[1]] = recordData[2]
+				r[recordData[1]] = recordData[2]
 				continue
 			}
 
@@ -149,6 +151,8 @@ func (d *DMI) ParseDmidecode(output string) error {
 				continue
 			}
 		}
+
+		d.Data[dmiHandle] = append(d.Data[dmiHandle], r)
 	}
 
 	if len(d.Data) == 0 {
@@ -159,26 +163,32 @@ func (d *DMI) ParseDmidecode(output string) error {
 }
 
 // GenericSearchBy will search for any param w/ value in the d.Data map.
-func (d *DMI) GenericSearchBy(param, value string) (map[string]string, error) {
+func (d *DMI) GenericSearchBy(param, value string) ([]Record, error) {
 	if len(d.Data) == 0 {
 		return nil, fmt.Errorf("DMI data is empty; make sure to .Run() first")
 	}
 
+	var records []Record
+
 	for _, v := range d.Data {
-		if v[param] == value {
-			return v, nil
+		for _, d := range v {
+			if d[param] != value {
+				continue
+			}
+
+			records = append(records, d)
 		}
 	}
 
-	return make(map[string]string), nil
+	return records, nil
 }
 
 // SearchByName will search for a specific DMI record by name in d.Data
-func (d *DMI) SearchByName(name string) (map[string]string, error) {
+func (d *DMI) SearchByName(name string) ([]Record, error) {
 	return d.GenericSearchBy("DMIName", name)
 }
 
 // SearchByType will search for a specific DMI record by its type in d.Data
-func (d *DMI) SearchByType(id int) (map[string]string, error) {
+func (d *DMI) SearchByType(id int) ([]Record, error) {
 	return d.GenericSearchBy("DMIType", strconv.Itoa(id))
 }
