@@ -1,6 +1,7 @@
 language: go
 
 before_install:
+  - sudo apt-get install dmidecode
   - go get -t -v ./...
 
 script:
