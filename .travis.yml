@@ -1,8 +1,7 @@
 language: go
 
 before_install:
-  - sudo apt-get install dmidecode
   - go get -t -v ./...
 
 script:
-  - sudo go test ./...
+  - sudo - E env "PATH=$PATH" go test -v ./...
